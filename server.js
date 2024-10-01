@@ -1,8 +1,9 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const axios = require('axios');
-const dotenv = require('dotenv');
-const cors = require('cors');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { Configuration, OpenAIApi } from 'openai';
+
 
 // Load environment variables
 dotenv.config();
@@ -12,8 +13,13 @@ app.use(express.json());
 app.use(cors()); // Allow CORS for your browser extension
 
 const PORT = process.env.PORT || 5000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
+
+// Set up OpenAI API configuration
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 // Middleware to check JWT
 const authenticateToken = (req, res, next) => {
@@ -40,33 +46,28 @@ app.post('/auth/login', (req, res) => {
     res.json({ token });
 });
 
-// Route to transform content using OpenAI
-app.post('/api/transform', authenticateToken, async (req, res) => {
-    const { content } = req.body;
+// Route to correct grammar
+app.post('/correct-grammar', async (req, res) => {
+    const { text } = req.body;
 
-    if (!content) return res.status(400).json({ error: 'Content is required' });
+    if (!text) {
+        return res.status(400).json({ error: 'Text is required' });
+    }
 
     try {
-        const response = await axios.post(
-            'https://api.openai.com/v1/completions',
-            {
-                model: 'text-davinci-003',  // Replace with your preferred model
-                prompt: content,
-                max_tokens: 150,
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
+        const response = await openai.createCompletion({
+            model: "gpt-4o",
+            prompt: `Correct the grammar of the following text:\n\n${text}`,
+            max_tokens: 1000,
+            temperature: 0.2,
+        });
 
-        const transformedContent = response.data.choices[0].text;
-        res.json({ transformedContent });
+        const correctedText = response.data.choices[0].text.trim();
+        res.json({ original: text, corrected: correctedText });
+
     } catch (error) {
-        console.error('Error with OpenAI API:', error.message);
-        res.status(500).json({ error: 'Failed to transform content' });
+        console.error('Error calling OpenAI API:', error);
+        res.status(500).json({ error: 'Error processing your request' });
     }
 });
 
