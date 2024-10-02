@@ -2,7 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAIApi from 'openai';
 
 
 // Load environment variables
@@ -16,10 +16,12 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Set up OpenAI API configuration
-const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+// const configuration = new Configuration({
+//     apiKey: process.env.OPENAI_API_KEY,
+// });
+const openai = new OpenAIApi({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
 
 // Middleware to check JWT
 const authenticateToken = (req, res, next) => {
@@ -49,20 +51,22 @@ app.post('/auth/login', (req, res) => {
 // Route to correct grammar
 app.post('/correct-grammar', async (req, res) => {
     const { text } = req.body;
+    console.log('Received text:', text); // Log the received text
 
     if (!text) {
         return res.status(400).json({ error: 'Text is required' });
     }
 
     try {
-        const response = await openai.createCompletion({
-            model: "gpt-4o",
+        const response = await  openai.chat.completions.create({
+            model: "gpt-4o-mini",
             prompt: `Correct the grammar of the following text:\n\n${text}`,
             max_tokens: 1000,
             temperature: 0.2,
         });
 
         const correctedText = response.data.choices[0].text.trim();
+        console.log(correctedText);
         res.json({ original: text, corrected: correctedText });
 
     } catch (error) {
