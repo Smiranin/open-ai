@@ -20,8 +20,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 //     apiKey: process.env.OPENAI_API_KEY,
 // });
 const openai = new OpenAIApi({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Middleware to check JWT
 const authenticateToken = (req, res, next) => {
@@ -58,14 +58,20 @@ app.post('/correct-grammar', async (req, res) => {
     }
 
     try {
-        const response = await  openai.chat.completions.create({
+        const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            prompt: `Correct the grammar of the following text:\n\n${text}`,
-            max_tokens: 1000,
+            max_tokens: 500,
             temperature: 0.2,
+            messages: [
+                { role: "system", content: "Correct/update the text" },
+                {
+                    role: "user",
+                    content: text,
+                },
+            ],
         });
 
-        const correctedText = response.data.choices[0].text.trim();
+        const correctedText = completion.choices[0].message.text.trim();
         console.log(correctedText);
         res.json({ original: text, corrected: correctedText });
 
