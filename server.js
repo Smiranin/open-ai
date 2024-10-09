@@ -71,8 +71,9 @@ app.post('/correct-grammar', async (req, res) => {
             ],
         });
 
-        const correctedText = completion.choices[0].message.text.trim();
-        console.log(correctedText);
+        console.log("Response", completion.choices[0].message);
+
+        const correctedText = completion.choices[0].message.content;
         res.json({ original: text, corrected: correctedText });
 
     } catch (error) {
